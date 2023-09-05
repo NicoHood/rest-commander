@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import logging
+import os
 from fastapi import FastAPI, HTTPException, Request
 import subprocess
 import tomllib as toml
@@ -39,6 +40,12 @@ async def execute_command(
     if command_data is None:
         logging.error(f"Ungültige Befehls-ID: {command_id}")
         raise HTTPException(status_code=400, detail=f"Ungültige Befehls-ID: {command_id}")
+
+    # Überprüfen, ob der Befehl einen absoluten Pfad hat
+    command = command_data["command"]
+    if not os.path.isabs(command):
+        logging.error(f"Der Befehl '{command}' ist kein absoluter Pfad")
+        raise HTTPException(status_code=400, detail=f"Der Befehl '{command}' ist kein absoluter Pfad")
 
     # Überprüfen, ob die übergebenen Parameter erlaubt und erforderlich sind
     allowed_params = command_data.get("params", [])

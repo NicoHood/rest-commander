@@ -178,4 +178,4 @@ if __name__ == "__main__":
     config = load_config(args.config)
 
     # Starte die FastAPI-Anwendung
-    uvicorn.run(app, host=config["server"].get("host", "localhost"), port=config["server"].get("port", 8000))
+    uvicorn.run(app, host=config.get("server", {}).get("host", "localhost"), port=config.get("server", {}).get("port", 8000))

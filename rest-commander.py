@@ -59,7 +59,7 @@ def verify_token(command_id: str, token: str = Depends(get_token)):
 def verify_basic_auth(command_id: str, credentials: HTTPBasicCredentials = Security(HTTPBasic())):
     if credentials.username is None or credentials.password is None:
         logging.error("Ungültige Anmeldeinformationen")
-        raise HTTPException(status_code=401, detail="Ungültige Anmeldeinformationen")
+        raise HTTPException(status_code=401, detail="Ungültige Anmeldeinformationen", headers={"WWW-Authenticate": "Basic"})
 
     valid_username = config.get("server", {}).get("username")
     command_data = config.get("commands", {}).get(command_id)
@@ -72,7 +72,7 @@ def verify_basic_auth(command_id: str, credentials: HTTPBasicCredentials = Secur
 
     if credentials.username != valid_username or credentials. password not in expected_tokens:
         logging.error("Ungültige Anmeldeinformationen")
-        raise HTTPException(status_code=401, detail="Ungültige Anmeldeinformationen")
+        raise HTTPException(status_code=401, detail="Ungültige Anmeldeinformationen", headers={"WWW-Authenticate": "Basic"})
 
 @app.get("/execute/{command_id}", tags=["Auth"])
 async def execute_command(

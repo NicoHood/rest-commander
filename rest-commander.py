@@ -26,6 +26,7 @@ app = FastAPI()
 # Lade die Konfiguration aus einer TOML-Datei
 def load_config(config_file):
     with open(config_file, 'rb') as f:
+        # TODO check if flag and default are used at the same time -> should give an error
         return toml.load(f)
 
 @app.get("/execute/{command_id}")
@@ -50,8 +51,6 @@ async def execute_command(
     # Überprüfen, ob die übergebenen Parameter erlaubt und erforderlich sind
     allowed_params = command_data.get("params", [])
     param_list = []
-
-    # TODO check if flag and default are used at the same time -> should give an error
 
     for param_name, param_value in request.query_params.items():
         param_config = next((param for param in allowed_params if param["name"] == param_name), None)

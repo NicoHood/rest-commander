@@ -40,6 +40,7 @@ def verify_token(command_id: str, token: str = Depends(get_token)):
     command_data = config.get("commands", {}).get(command_id)
 
     if not command_data:
+        logging.error("Befehl nicht gefunden")
         raise HTTPException(status_code=404, detail="Befehl nicht gefunden")
 
     expected_tokens = command_data.get("tokens", [])

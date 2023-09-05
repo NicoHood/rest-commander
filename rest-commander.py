@@ -73,7 +73,7 @@ def verify_basic_auth(command_id: str, credentials: HTTPBasicCredentials = Secur
         logging.error("Ungültige Anmeldeinformationen")
         raise HTTPException(status_code=401, detail="Ungültige Anmeldeinformationen")
 
-@app.get("/execute/{command_id}")
+@app.get("/execute/{command_id}", tags=["Auth"])
 async def execute_command(
     command_id: str,
     request: Request,

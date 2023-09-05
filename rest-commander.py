@@ -2,6 +2,7 @@
 
 import logging
 import os
+import base64
 from fastapi import FastAPI, HTTPException, Request, Depends, Header
 import subprocess
 import tomllib as toml
@@ -53,11 +54,38 @@ def verify_token(command_id: str, token: str = Depends(get_token)):
 
     return token
 
+def verify_basic_auth(command_id: str, authorization: str = Header(None)):
+    if authorization is None:
+        logging.error("Authentifizierungsheader fehlt")
+        raise HTTPException(status_code=401, detail="Authentifizierungsheader fehlt")
+
+    auth_type, auth_value = authorization.split()
+    if auth_type.lower() != "basic":
+        logging.error("Ungültiger Authentifizierungstyp")
+        raise HTTPException(status_code=401, detail="Ungültiger Authentifizierungstyp")
+
+    decoded_auth = base64.b64decode(auth_value).decode("utf-8")
+    username, password = decoded_auth.split(":")
+
+    valid_username = config.get("server", {}).get("username")
+    command_data = config.get("commands", {}).get(command_id)
+
+    if not command_data:
+        logging.error("Befehl nicht gefunden")
+        raise HTTPException(status_code=404, detail="Befehl nicht gefunden")
+
+    expected_tokens = command_data.get("tokens", [])
+
+    print(username, valid_username, password, expected_tokens, config.get("server", {}))
+    if username != valid_username or password not in expected_tokens:
+        logging.error("Ungültige Anmeldeinformationen")
+        raise HTTPException(status_code=401, detail="Ungültige Anmeldeinformationen")
+
 @app.get("/execute/{command_id}")
 async def execute_command(
     command_id: str,
     request: Request,
-    token: str = Depends(verify_token)
+    token: str = Depends(verify_basic_auth)
 ):
     logging.debug(f"Command ID: {command_id}")
 

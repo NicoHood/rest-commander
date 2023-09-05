@@ -4,6 +4,7 @@ import logging
 import os
 from fastapi import FastAPI, HTTPException, Request, Depends, Header, Security
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi.responses import JSONResponse
 import subprocess
 import tomllib as toml
 from pathlib import Path
@@ -141,12 +142,13 @@ async def execute_command(
 
     # Ergebnis zurückgeben
     logging.debug(f"Shell result: {result.stdout}, {result.stderr}")
-    return {
-        "command": command_to_execute,
-        "stdout": result.stdout,
-        "stderr": result.stderr,
-        "returncode": result.returncode
+    data = {
+        "command": result.args if command_data.get("args", False) else None,
+        "stdout": result.stdout if command_data.get("stdout", False) else None,
+        "stderr": result.stderr if command_data.get("stderr", False) else None,
+        "returncode": result.returncode if command_data.get("returncode", False) else None,
     }
+    return JSONResponse(content=data)
 
 if __name__ == "__main__":
     """ This is executed when run from the command line """

@@ -2,7 +2,7 @@
 
 import logging
 import os
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends, Header
 import subprocess
 import tomllib as toml
 from pathlib import Path
@@ -29,10 +29,35 @@ def load_config(config_file):
         # TODO check if flag and default are used at the same time -> should give an error
         return toml.load(f)
 
+def get_token(authorization: str = Header(...)):
+    if authorization.startswith("Bearer "):
+        token = authorization.split("Bearer ")[1]
+        return token
+    raise HTTPException(status_code=401, detail="Ungültiger Token")
+
+def verify_token(command_id: str, token: str = Depends(get_token)):
+    command_data = config.get("commands", {}).get(command_id)
+
+    if not command_data:
+        raise HTTPException(status_code=404, detail="Befehl nicht gefunden")
+
+    expected_tokens = command_data.get("tokens", [])
+
+    if not expected_tokens:
+        logging.error("Token nicht in der Konfiguration gefunden")
+        raise HTTPException(status_code=401, detail="Token nicht in der Konfiguration gefunden")
+
+    if token not in expected_tokens:
+        logging.error("Ungültiger Token")
+        raise HTTPException(status_code=401, detail="Ungültiger Token")
+
+    return token
+
 @app.get("/execute/{command_id}")
 async def execute_command(
     command_id: str,
-    request: Request
+    request: Request,
+    token: str = Depends(verify_token)
 ):
     logging.debug(f"Command ID: {command_id}")
 

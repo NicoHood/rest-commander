@@ -143,7 +143,7 @@ async def execute_command(
     # Ergebnis zurückgeben
     logging.debug(f"Shell result: {result.stdout}, {result.stderr}")
     data = {
-        "command": result.args if command_data.get("args", False) else None,
+        "args": result.args if command_data.get("args", False) else None,
         "stdout": result.stdout if command_data.get("stdout", False) else None,
         "stderr": result.stderr if command_data.get("stderr", False) else None,
         "returncode": result.returncode if command_data.get("returncode", False) else None,

@@ -181,3 +181,6 @@ if __name__ == "__main__":
 
     # Starte die FastAPI-Anwendung
     uvicorn.run(app, host=config.get("server", {}).get("host", "localhost"), port=config.get("server", {}).get("port", 8000))
+else:
+    # TODO also respect environment variables
+    config = load_config("config.toml")

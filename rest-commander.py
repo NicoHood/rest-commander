@@ -132,23 +132,40 @@ async def execute_command(
     command_to_execute = [command_data["command"]] + fixed_params + param_list
     logging.debug(f"Command to execute: {command_to_execute}")
 
-    # Shell-Befehl ausführen (ohne shell)
-    result = subprocess.run(
-        command_to_execute,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
+    # Überprüfen, ob die Option "fire_and_forget" in der Konfiguration gesetzt ist
+    fire_and_forget = command_data.get("fire_and_forget", False)
 
-    # Ergebnis zurückgeben
-    logging.debug(f"Shell result: {result.stdout}, {result.stderr}")
-    data = {
-        "args": result.args if command_data.get("args", False) else None,
-        "stdout": result.stdout if command_data.get("stdout", False) else None,
-        "stderr": result.stderr if command_data.get("stderr", False) else None,
-        "returncode": result.returncode if command_data.get("returncode", False) else None,
-    }
-    return JSONResponse(content=data)
+    if fire_and_forget:
+        # Starte den Befehl asynchron und warte nicht auf die Beendigung
+        subprocess.Popen(
+            command_to_execute,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            close_fds=True,
+        )
+        # Keine Wartezeit, keine Ausgabe erforderlich
+        return JSONResponse(content={"message": "Command wurde gestartet (fire and forget)"})
+
+    else:
+        # Shell-Befehl ausführen (ohne shell)
+        result = subprocess.run(
+            command_to_execute,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            close_fds=True,
+        )
+
+        # Ergebnis zurückgeben
+        logging.debug(f"Shell result: {result.stdout}, {result.stderr}")
+        data = {
+            "args": result.args if command_data.get("args", False) else None,
+            "stdout": result.stdout if command_data.get("stdout", False) else None,
+            "stderr": result.stderr if command_data.get("stderr", False) else None,
+            "returncode": result.returncode if command_data.get("returncode", False) else None,
+        }
+        return JSONResponse(content=data)
 
 if __name__ == "__main__":
     """ This is executed when run from the command line """

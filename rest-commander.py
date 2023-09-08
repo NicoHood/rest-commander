@@ -57,18 +57,21 @@ def verify_token(command_id: str, token: str = Depends(get_token)):
     return token
 
 def verify_basic_auth(command_id: str, credentials: HTTPBasicCredentials = Security(HTTPBasic())):
+    command_data = config.get("commands", {}).get(command_id)
+    if not command_data:
+        logging.error("Befehl nicht gefunden")
+        raise HTTPException(status_code=404, detail="Befehl nicht gefunden")
+
+    # Only validate token if specified in the config
+    expected_tokens = command_data.get("tokens", [])
+    if len(expected_tokens) <= 0:
+        return
+
     if credentials.username is None or credentials.password is None:
         logging.error("Ungültige Anmeldeinformationen")
         raise HTTPException(status_code=401, detail="Ungültige Anmeldeinformationen", headers={"WWW-Authenticate": "Basic"})
 
     valid_username = config.get("server", {}).get("username")
-    command_data = config.get("commands", {}).get(command_id)
-
-    if not command_data:
-        logging.error("Befehl nicht gefunden")
-        raise HTTPException(status_code=404, detail="Befehl nicht gefunden")
-
-    expected_tokens = command_data.get("tokens", [])
 
     if credentials.username != valid_username or credentials. password not in expected_tokens:
         logging.error("Ungültige Anmeldeinformationen")

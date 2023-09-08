@@ -2,7 +2,8 @@
 
 import logging
 import os
-from fastapi import FastAPI, HTTPException, Request, Depends, Header, Security
+import base64
+from fastapi import FastAPI, HTTPException, Request, Depends, Header
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.responses import JSONResponse
 import subprocess
@@ -56,7 +57,7 @@ def verify_token(command_id: str, token: str = Depends(get_token)):
 
     return token
 
-def verify_basic_auth(command_id: str, credentials: HTTPBasicCredentials = Security(HTTPBasic())):
+def verify_basic_auth(command_id: str, authorization: str = Header(None)):
     command_data = config.get("commands", {}).get(command_id)
     if not command_data:
         logging.error("Befehl nicht gefunden")
@@ -65,15 +66,28 @@ def verify_basic_auth(command_id: str, credentials: HTTPBasicCredentials = Secur
     # Only validate token if specified in the config
     expected_tokens = command_data.get("tokens", [])
     if len(expected_tokens) <= 0:
+        logging.debug("Skipping auth validation as no token was specified")
         return
 
-    if credentials.username is None or credentials.password is None:
+    if authorization is None:
+        logging.error("Authentifizierungsheader fehlt")
+        raise HTTPException(status_code=401, detail="Authentifizierungsheader fehlt")
+
+    auth_type, auth_value = authorization.split()
+    if auth_type.lower() != "basic":
+        logging.error("Ungültiger Authentifizierungstyp")
+        raise HTTPException(status_code=401, detail="Ungültiger Authentifizierungstyp")
+
+    decoded_auth = base64.b64decode(auth_value).decode("utf-8")
+    username, password = decoded_auth.split(":")
+
+    if username is None or password is None:
         logging.error("Ungültige Anmeldeinformationen")
         raise HTTPException(status_code=401, detail="Ungültige Anmeldeinformationen", headers={"WWW-Authenticate": "Basic"})
 
     valid_username = config.get("server", {}).get("username")
 
-    if credentials.username != valid_username or credentials. password not in expected_tokens:
+    if username != valid_username or password not in expected_tokens:
         logging.error("Ungültige Anmeldeinformationen")
         raise HTTPException(status_code=401, detail="Ungültige Anmeldeinformationen", headers={"WWW-Authenticate": "Basic"})
 
